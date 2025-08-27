@@ -5,7 +5,7 @@ export class FirewallController {
   static async addRule(req: Request, res: Response) {
     try {
       const { values, mode } = req.body;
-      const type = req.path.split('/').pop(); // יוצא 'ip', 'url', או 'port' מה-path
+      const type = req.path.split('/').pop(); 
 
       if (!values || !Array.isArray(values) || !mode) {
         return res.status(400).json({ 
