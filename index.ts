@@ -4,13 +4,10 @@ import firewallRoutes from './routes/firewallRoutes';
 const app = express();
 const PORT = 3000;
 
-// Middleware
 app.use(express.json());
 
-// Routes
 app.use('/api', firewallRoutes);
 
-// בדיקת שרת
 app.get('/', (req, res) => {
   res.json({ message: 'Firewall API is running!' });
 });
