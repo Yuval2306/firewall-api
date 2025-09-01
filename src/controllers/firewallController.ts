@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { FirewallRuleModel } from '../models/FirewallRule';
+import { PostgresService } from '../services/PostgresService';
 
 export class FirewallController {
   static async addRule(req: Request, res: Response) {
     try {
       const { values, mode } = req.body;
-      const type = req.path.split('/').pop(); 
+      const type = req.path.split('/').pop();
 
       if (!values || !Array.isArray(values) || !mode) {
         return res.status(400).json({ 
@@ -19,14 +19,12 @@ export class FirewallController {
         });
       }
 
-      const createdRules = [];
       for (const value of values) {
-        const rule = await FirewallRuleModel.create({
+        await PostgresService.createRule({
           type: type as 'ip' | 'url' | 'port',
           value: String(value),
           mode
         });
-        createdRules.push(rule);
       }
 
       res.json({
@@ -52,7 +50,7 @@ export class FirewallController {
         });
       }
 
-      const deletedRules = await FirewallRuleModel.delete(
+      const deletedRules = await PostgresService.deleteRules(
         type as string,
         values.map(String),
         mode
@@ -73,7 +71,7 @@ export class FirewallController {
 
   static async getAllRules(req: Request, res: Response) {
     try {
-      const rules = await FirewallRuleModel.getAll();
+      const rules = await PostgresService.getAllRules();
       res.json(rules);
     } catch (error) {
       console.error('Error getting rules:', error);
@@ -84,7 +82,7 @@ export class FirewallController {
   static async updateRuleStatus(req: Request, res: Response) {
     try {
       const updates = req.body;
-      const result = await FirewallRuleModel.updateStatus(updates);
+      const result = await PostgresService.updateRuleStatus(updates);
       res.json(result);
     } catch (error) {
       console.error('Error updating rule status:', error);
