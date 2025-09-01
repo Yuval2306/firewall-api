@@ -2,21 +2,33 @@ import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { config } from './env';
 import logger from './logger';
-import { firewallRules } from './schema';
 
 class DatabaseConnection {
+  private static instance: DatabaseConnection;
   private pool: Pool;
   private db: ReturnType<typeof drizzle>;
   private isConnected = false;
 
-  constructor() {
+  private constructor() {
     this.pool = new Pool({
       connectionString: config.database.uri,
     });
     this.db = drizzle(this.pool);
+    this.setupProcessHandlers();
+  }
+
+  public static getInstance(): DatabaseConnection {
+    if (!DatabaseConnection.instance) {
+      DatabaseConnection.instance = new DatabaseConnection();
+    }
+    return DatabaseConnection.instance;
   }
 
   async connect(): Promise<void> {
+    if (this.isConnected) {
+      return;
+    }
+
     const maxRetries = 5;
     let retries = 0;
 
@@ -65,20 +77,21 @@ class DatabaseConnection {
       logger.info('Database disconnected');
     }
   }
+
+  private setupProcessHandlers(): void {
+    process.on('SIGINT', async () => {
+      logger.info('Received SIGINT. Gracefully shutting down...');
+      await this.disconnect();
+      process.exit(0);
+    });
+
+    process.on('SIGTERM', async () => {
+      logger.info('Received SIGTERM. Gracefully shutting down...');
+      await this.disconnect();
+      process.exit(0);
+    });
+  }
 }
 
-const database = new DatabaseConnection();
-
-process.on('SIGINT', async () => {
-  logger.info('Received SIGINT. Gracefully shutting down...');
-  await database.disconnect();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  logger.info('Received SIGTERM. Gracefully shutting down...');
-  await database.disconnect();
-  process.exit(0);
-});
-
+const database = DatabaseConnection.getInstance();
 export default database;
